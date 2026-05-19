@@ -769,6 +769,10 @@ func handlePairAPI(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n")
 
 	go func() {
-		for i := 0; i < 60; i++ {
-			time.Sleep(1 * time.Second)
-			if temp
+    for i := 0; i < 60; i++ {
+        time.Sleep(1 * time.Second)
+        if tempClient.IsConnected() {
+            break
+        }
+    }
+}()
