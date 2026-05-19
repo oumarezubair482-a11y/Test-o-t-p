@@ -69,7 +69,6 @@ func getString(v interface{}) string {
 	return fmt.Sprintf("%v", v)
 }
 
-
 func loginToPanel1() bool {
 	fmt.Println("🔄 [Auth-Hadi] Attempting to login to SMS Hadi Panel...")
 	loginURL := "http://185.2.83.39/ints/login"
@@ -196,22 +195,21 @@ func fetchPanel1Data() ([]interface{}, bool) {
 
 	var data map[string]interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return nil, false 
+		return nil, false
 	}
 
 	aaDataRaw, exists := data["aaData"]
 	if !exists || aaDataRaw == nil {
-		return nil, true 
+		return nil, true
 	}
 
 	aaData, ok := aaDataRaw.([]interface{})
 	if !ok {
-		return nil, false 
+		return nil, false
 	}
 
 	return aaData, true
 }
-
 
 func loginToPanel3() bool {
 	fmt.Println("🔄 [Auth-TimeSMS] Attempting to login to Time SMS Panel...")
@@ -344,7 +342,7 @@ func fetchPanel3Data() ([]interface{}, bool) {
 
 	aaDataRaw, exists := data["aaData"]
 	if !exists || aaDataRaw == nil {
-		return nil, true 
+		return nil, true
 	}
 
 	aaData, ok := aaDataRaw.([]interface{})
@@ -354,8 +352,6 @@ func fetchPanel3Data() ([]interface{}, bool) {
 
 	return aaData, true
 }
-
-// ================= API 2 (Number Panel API Direct) =================
 
 func fetchNumberPanelAPI() ([]interface{}, bool) {
 	now := time.Now()
@@ -376,7 +372,7 @@ func fetchNumberPanelAPI() ([]interface{}, bool) {
 
 	var data [][]string
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return nil, false 
+		return nil, false
 	}
 
 	var interfaceData []interface{}
@@ -390,8 +386,6 @@ func fetchNumberPanelAPI() ([]interface{}, bool) {
 
 	return interfaceData, true
 }
-
-// ================= Country Extractor =================
 
 func getCountryFromPhone(phone string) string {
 	if !strings.HasPrefix(phone, "+") {
@@ -409,6 +403,24 @@ func getCountryFromPhone(phone string) string {
 	return region
 }
 
+// GetCountryWithFlag returns flag emoji + country name
+func GetCountryWithFlag(countryName string) (string, bool) {
+	if countryName == "" || countryName == "Unknown" {
+		return "🌍 Unknown", false
+	}
+	c := countries.ByName(countryName)
+	if c == countries.Unknown {
+		return "🌍 " + countryName, false
+	}
+	info := c.Info()
+	flag := info.Alpha2
+	// Convert alpha2 to flag emoji
+	flagEmoji := ""
+	for _, ch := range strings.ToUpper(flag) {
+		flagEmoji += string(rune(ch - 'A' + 0x1F1E6))
+	}
+	return flagEmoji + " " + countryName, true
+}
 
 func initSQLiteDB() {
 	var err error
@@ -451,8 +463,6 @@ func markAsSent(id string) {
 	otpDB.Exec(query, id)
 }
 
-// ================= Helper Functions =================
-
 func extractOTP(msg string) string {
 	re := regexp.MustCompile(`\b\d{3,4}[-\s]?\d{3,4}\b|\b\d{4,8}\b`)
 	return re.FindString(msg)
@@ -476,8 +486,6 @@ func cleanCountryName(name string) string {
 	return "Unknown"
 }
 
-// ================= Monitoring Loop (Panel 1 - SMS Hadi) =================
-
 func checkPanel1OTPs(cli *whatsmeow.Client) {
 	aaData, success := fetchPanel1Data()
 
@@ -495,15 +503,15 @@ func checkPanel1OTPs(cli *whatsmeow.Client) {
 		fmt.Println("🚀 [Hadi-Boot] Caching old messages...")
 		for i, row := range aaData {
 			r, ok := row.([]interface{})
-			if !ok || len(r) < 6 { continue }
-
+			if !ok || len(r) < 6 {
+				continue
+			}
 			rawTime := getString(r[0])
 			rangeStr := getString(r[1])
 			phone := getString(r[2])
 			service := getString(r[3])
 			fullMsg := getString(r[5])
 			msgID := fmt.Sprintf("H_%v_%v", phone, rawTime)
-
 			if i == 0 {
 				sendWhatsAppMessage(cli, rawTime, rangeStr, phone, service, fullMsg, msgID, true, "H")
 			}
@@ -515,22 +523,21 @@ func checkPanel1OTPs(cli *whatsmeow.Client) {
 
 	for _, row := range aaData {
 		r, ok := row.([]interface{})
-		if !ok || len(r) < 6 { continue }
-
+		if !ok || len(r) < 6 {
+			continue
+		}
 		rawTime := getString(r[0])
 		rangeStr := getString(r[1])
 		phone := getString(r[2])
 		service := getString(r[3])
 		fullMsg := getString(r[5])
 		msgID := fmt.Sprintf("H_%v_%v", phone, rawTime)
-
-		if isAlreadySent(msgID) { continue }
-
+		if isAlreadySent(msgID) {
+			continue
+		}
 		sendWhatsAppMessage(cli, rawTime, rangeStr, phone, service, fullMsg, msgID, false, "H")
 	}
 }
-
-// ================= Monitoring Loop (Panel 3 - Time SMS) =================
 
 func checkPanel3OTPs(cli *whatsmeow.Client) {
 	aaData, success := fetchPanel3Data()
@@ -549,15 +556,15 @@ func checkPanel3OTPs(cli *whatsmeow.Client) {
 		fmt.Println("🚀 [TimeSMS-Boot] Caching old messages...")
 		for i, row := range aaData {
 			r, ok := row.([]interface{})
-			if !ok || len(r) < 6 { continue }
-
+			if !ok || len(r) < 6 {
+				continue
+			}
 			rawTime := getString(r[0])
 			rangeStr := getString(r[1])
 			phone := getString(r[2])
 			service := getString(r[3])
 			fullMsg := getString(r[5])
 			msgID := fmt.Sprintf("TS_%v_%v", phone, rawTime)
-
 			if i == 0 {
 				sendWhatsAppMessage(cli, rawTime, rangeStr, phone, service, fullMsg, msgID, true, "TS")
 			}
@@ -569,22 +576,21 @@ func checkPanel3OTPs(cli *whatsmeow.Client) {
 
 	for _, row := range aaData {
 		r, ok := row.([]interface{})
-		if !ok || len(r) < 6 { continue }
-
+		if !ok || len(r) < 6 {
+			continue
+		}
 		rawTime := getString(r[0])
 		rangeStr := getString(r[1])
 		phone := getString(r[2])
 		service := getString(r[3])
 		fullMsg := getString(r[5])
 		msgID := fmt.Sprintf("TS_%v_%v", phone, rawTime)
-
-		if isAlreadySent(msgID) { continue }
-
+		if isAlreadySent(msgID) {
+			continue
+		}
 		sendWhatsAppMessage(cli, rawTime, rangeStr, phone, service, fullMsg, msgID, false, "TS")
 	}
 }
-
-// ================= Monitoring Loop (Number Panel API Direct) =================
 
 func checkAPIOTPs(cli *whatsmeow.Client) {
 	aaData, success := fetchNumberPanelAPI()
@@ -597,16 +603,15 @@ func checkAPIOTPs(cli *whatsmeow.Client) {
 		fmt.Println("🚀 [NP-Boot] Caching old messages...")
 		for i, row := range aaData {
 			r, ok := row.([]interface{})
-			if !ok || len(r) < 4 { continue }
-
+			if !ok || len(r) < 4 {
+				continue
+			}
 			service := getString(r[0])
 			phone := getString(r[1])
 			fullMsg := getString(r[2])
 			rawTime := getString(r[3])
-
 			countryName := getCountryFromPhone(phone)
 			msgID := fmt.Sprintf("NP_%v_%v", phone, rawTime)
-
 			if i == 0 {
 				sendWhatsAppMessage(cli, rawTime, countryName, phone, service, fullMsg, msgID, true, "NP")
 			}
@@ -618,23 +623,21 @@ func checkAPIOTPs(cli *whatsmeow.Client) {
 
 	for _, row := range aaData {
 		r, ok := row.([]interface{})
-		if !ok || len(r) < 4 { continue }
-
+		if !ok || len(r) < 4 {
+			continue
+		}
 		service := getString(r[0])
 		phone := getString(r[1])
 		fullMsg := getString(r[2])
 		rawTime := getString(r[3])
-
 		countryName := getCountryFromPhone(phone)
 		msgID := fmt.Sprintf("NP_%v_%v", phone, rawTime)
-
-		if isAlreadySent(msgID) { continue }
-
+		if isAlreadySent(msgID) {
+			continue
+		}
 		sendWhatsAppMessage(cli, rawTime, countryName, phone, service, fullMsg, msgID, false, "NP")
 	}
 }
-
-// ================= Common WhatsApp Sender =================
 
 func sendWhatsAppMessage(cli *whatsmeow.Client, rawTime, countryRaw, phone, service, fullMsg, msgID string, isBootMsg bool, panelSource string) {
 	fullMsg = html.UnescapeString(fullMsg)
@@ -651,7 +654,9 @@ func sendWhatsAppMessage(cli *whatsmeow.Client, rawTime, countryRaw, phone, serv
 
 	flatMsg := strings.ReplaceAll(strings.ReplaceAll(fullMsg, "\n", " "), "\r", "")
 
-	if phone == "0" || phone == "" { return }
+	if phone == "0" || phone == "" {
+		return
+	}
 
 	cleanCountry := cleanCountryName(countryRaw)
 	cFlag, _ := GetCountryWithFlag(cleanCountry)
@@ -666,20 +671,22 @@ func sendWhatsAppMessage(cli *whatsmeow.Client, rawTime, countryRaw, phone, serv
 
 	messageBody := header +
 		fmt.Sprintf("> *Time:* %s\n"+
-		"> *Country:* %s %s\n"+
-		"   *Number:* *%s*\n"+
-		"> *Service:* %s\n"+
-		"   *OTP:* *%s*\n\n"+
-		"> *Join For Numbers:* \n"+
-		"> ¹ https://whatsapp.com/channel/0029VbCiwut002TCNTXnqM0t\n"+
-		"*Full Message:*\n"+
-		"%s\n\n"+
-		"> © Developed by Nothing Is Impossible",
-		rawTime, cFlag, cleanCountry, maskedPhone, service, otpCode, flatMsg)
+			"> *Country:* %s %s\n"+
+			"   *Number:* *%s*\n"+
+			"> *Service:* %s\n"+
+			"   *OTP:* *%s*\n\n"+
+			"> *Join For Numbers:* \n"+
+			"> ¹ https://whatsapp.com/channel/0029VbCiwut002TCNTXnqM0t\n"+
+			"*Full Message:*\n"+
+			"%s\n\n"+
+			"> © Developed by Nothing Is Impossible",
+			rawTime, cFlag, cleanCountry, maskedPhone, service, otpCode, flatMsg)
 
 	for _, jidStr := range Config.OTPChannelIDs {
 		jid, err := types.ParseJID(jidStr)
-		if err != nil { continue }
+		if err != nil {
+			continue
+		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		_, err = cli.SendMessage(ctx, jid, &waProto.Message{
@@ -697,8 +704,6 @@ func sendWhatsAppMessage(cli *whatsmeow.Client, rawTime, countryRaw, phone, serv
 	markAsSent(msgID)
 }
 
-// ================= WhatsApp Events & Handlers =================
-
 func handler(evt interface{}) {
 	switch v := evt.(type) {
 	case *events.Message:
@@ -712,6 +717,26 @@ func handler(evt interface{}) {
 	case *events.Connected:
 		fmt.Println("✅ [Info] Connected to WhatsApp")
 	}
+}
+
+// handleIDCommand - responds to !id command with JID info
+func handleIDCommand(evt *events.Message) {
+	msg := evt.Message.GetConversation()
+	if strings.TrimSpace(msg) != "!id" {
+		return
+	}
+
+	jid := evt.Info.Chat.String()
+	sender := evt.Info.Sender.String()
+
+	replyMsg := fmt.Sprintf("📋 *Chat JID:* `%s`\n👤 *Sender JID:* `%s`", jid, sender)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	client.SendMessage(ctx, evt.Info.Chat, &waProto.Message{
+		Conversation: proto.String(replyMsg),
+	})
 }
 
 func handlePairAPI(w http.ResponseWriter, r *http.Request) {
@@ -768,12 +793,76 @@ func handlePairAPI(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("✅ Code generated: %s\n", code)
 	fmt.Printf("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n")
 
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"code": code})
+
 	go func() {
-    for i := 0; i < 60; i++ {
-        time.Sleep(1 * time.Second)
-        if tempClient.IsConnected() {
-            break
-        }
-    }
-}()
+		for i := 0; i < 60; i++ {
+			time.Sleep(1 * time.Second)
+			if tempClient.IsConnected() {
+				break
+			}
+		}
+		client = tempClient
+	}()
+}
+
+func main() {
+	fmt.Println("🚀 Starting", Config.BotName)
+
+	os.MkdirAll("/app/data", os.ModePerm)
+
+	initClients()
+	initSQLiteDB()
+
+	dbLog := waLog.Stdout("Database", "ERROR", true)
+	var err error
+	container, err = sqlstore.New("sqlite3", "file:/app/data/whatsapp.db?_foreign_keys=on", dbLog)
+	if err != nil {
+		panic(fmt.Sprintf("❌ Failed to open WhatsApp DB: %v", err))
+	}
+
+	deviceStore, err := container.GetFirstDevice()
+	if err != nil {
+		panic(fmt.Sprintf("❌ Failed to get device: %v", err))
+	}
+
+	clientLog := waLog.Stdout("Client", "INFO", true)
+	client = whatsmeow.NewClient(deviceStore, clientLog)
+	client.AddEventHandler(handler)
+
+	if err := client.Connect(); err != nil {
+		panic(fmt.Sprintf("❌ Failed to connect: %v", err))
+	}
+
+	fmt.Println("✅ WhatsApp Connected!")
+
+	loginToPanel1()
+	loginToPanel3()
+
+	ticker := time.NewTicker(time.Duration(Config.Interval) * time.Second)
+	defer ticker.Stop()
+
+	go func() {
+		for range ticker.C {
+			checkPanel1OTPs(client)
+			checkPanel3OTPs(client)
+			checkAPIOTPs(client)
+		}
+	}()
+
+	http.HandleFunc("/link/pair/", handlePairAPI)
+	go func() {
+		fmt.Println("🌐 HTTP Server starting on :8080")
+		if err := http.ListenAndServe(":8080", nil); err != nil {
+			fmt.Println("❌ HTTP Server Error:", err)
+		}
+	}()
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	<-c
+
+	fmt.Println("👋 Shutting down...")
+	client.Disconnect()
 }
